@@ -1,0 +1,73 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <header>
+        {% for letter in letters %}
+        <img class="letter" id="{{letter.id}}" src="{{"static/"+letter.letter+".png"}}" onload="drag(this)" style="{{"position:absolute;z-index:0;left:"+letter.position[0]+"px;" + "top:" + letter.position[1] + "px;"}}" selected="false">
+        {% endfor %}
+        <nav>
+
+        </nav>
+    </header>
+    <script>
+        function drag(el) {
+            var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            el.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                el.setAttribute("selected", "true")
+                el.style.top = (el.offsetTop - pos2) + "px";
+                el.style.left = (el.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                url = window.location.href;
+                var parameter = "id=" + el.id + "&position=" + String(el.offsetLeft - pos1) + "," + String(el.offsetTop - pos2);
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", url, true);
+                xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                xhr.send(parameter);
+                el.setAttribute("selected", "false")
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+        async function update() {
+            letters = document.getElementsByClassName("letter");
+            new_letter_locs = await fetch("/letter_locs");
+            new_letter_locs = await new_letter_locs.text();
+            new_letter_locs = new_letter_locs.split("!");
+            for (i = 0; i < letters.length; i++) {
+                if (letters[i].getAttribute("selected")!="true") {
+                    loc = new_letter_locs[i].split(",");
+                    if ([loc[0], loc[1]] != [letters[i].style.left, letters[i].style.top]) {
+                        letters[i].style.left = loc[0] + "px";
+                        letters[i].style.top = loc[1] + "px";
+                    }
+                }
+            }
+        }
+        var interval = window.setInterval(update, 2000);
+    </script>
+</body>
+</html>
